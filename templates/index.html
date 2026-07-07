@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-to-SQL AI Analyst Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- SIDEBAR: Configuration & Schema -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-database-arrow-up neon-icon"></i>
+                    <h2>SQL<span>Genie</span></h2>
+                </div>
+                <p class="subtitle">Analisis Database dengan AI</p>
+            </div>
+            
+            <!-- Connection Form Panel -->
+            <div class="card config-card">
+                <div class="card-header" id="toggle-config">
+                    <h3><i class="fa-solid fa-link"></i> Koneksi Database</h3>
+                    <i class="fa-solid fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="card-body" id="config-body">
+                    <div class="form-group">
+                        <label for="db-host"><i class="fa-solid fa-server"></i> Host</label>
+                        <input type="text" id="db-host" value="localhost" placeholder="localhost">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-8">
+                            <label for="db-user"><i class="fa-solid fa-user"></i> User</label>
+                            <input type="text" id="db-user" value="root" placeholder="root">
+                        </div>
+                        <div class="form-group col-4">
+                            <label for="db-port">Port</label>
+                            <input type="number" id="db-port" value="3306" placeholder="3306">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="db-password"><i class="fa-solid fa-key"></i> Password</label>
+                        <input type="password" id="db-password" placeholder="Password (jika ada)">
+                    </div>
+                    <div class="form-group">
+                        <label for="db-name"><i class="fa-solid fa-database"></i> Nama Database</label>
+                        <input type="text" id="db-name" placeholder="Contoh: ecomart">
+                    </div>
+                    <div class="form-group">
+                        <label for="gemini-key"><i class="fa-solid fa-robot"></i> Gemini API Key (Opsional)</label>
+                        <input type="password" id="gemini-key" placeholder="Menggunakan .env jika kosong">
+                        <span class="input-hint">Kunci opsional untuk mengganti API Key default server</span>
+                    </div>
+                    <button id="btn-connect" class="btn btn-primary btn-block">
+                        <i class="fa-solid fa-plug"></i> Hubungkan
+                    </button>
+                    <div id="connection-status" class="status-badge disconnected">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Terputus</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Schema Explorer -->
+            <div class="card schema-card flex-grow">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-folder-tree"></i> Struktur Database</h3>
+                    <button id="btn-refresh-schema" class="btn-icon" title="Refresh Skema" disabled>
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                </div>
+                <div class="card-body schema-body scrollable">
+                    <div id="schema-placeholder" class="placeholder-text">
+                        <i class="fa-solid fa-database"></i>
+                        <p>Hubungkan ke database terlebih dahulu untuk melihat skema tabel.</p>
+                    </div>
+                    <div id="schema-list" class="schema-tree hidden">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+            <!-- Header bar -->
+            <header class="top-bar">
+                <div class="db-indicator">
+                    <i class="fa-solid fa-circle-check text-success hidden" id="db-active-icon"></i>
+                    <span id="db-active-name" class="active-db-text">Silakan Hubungkan Database Anda</span>
+                </div>
+                <div class="theme-toggle">
+                    <i class="fa-solid fa-circle-half-stroke"></i>
+                </div>
+            </header>
+
+            <!-- Workspace -->
+            <div class="workspace-container">
+                
+                <!-- Query Prompt Section -->
+                <div class="card query-card">
+                    <div class="card-body">
+                        <h2>Tanyakan Sesuatu pada Database Anda</h2>
+                        <p class="section-desc">Masukkan pertanyaan analitis dalam Bahasa Indonesia. AI akan mengubahnya menjadi query SQL dan menjelaskan hasilnya untuk Anda.</p>
+                        
+                        <div class="query-input-wrapper">
+                            <textarea id="query-input" placeholder="Contoh: Tampilkan 5 produk dengan penjualan paling banyak beserta total pendapatan..." rows="2" disabled></textarea>
+                            <button id="btn-submit-query" class="btn btn-glow" disabled>
+                                <span class="btn-text">Kirim</span>
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <div class="suggestions">
+                            <span class="suggestion-label">Saran pertanyaan:</span>
+                            <div class="suggestion-chips" id="suggestion-chips">
+                                <button class="chip" disabled>Semua tabel produk</button>
+                                <button class="chip" disabled>5 penjualan teratas</button>
+                                <button class="chip" disabled>Total pesanan bulan ini</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LOADING SHIMMER -->
+                <div id="loading-state" class="loading-state hidden">
+                    <div class="spinner-container">
+                        <div class="double-bounce1"></div>
+                        <div class="double-bounce2"></div>
+                    </div>
+                    <p id="loading-text">Sedang memformulasikan SQL Query...</p>
+                </div>
+
+                <!-- RESULTS DASHBOARD -->
+                <div id="results-dashboard" class="results-dashboard hidden">
+                    
+                    <!-- Row 1: SQL Code & AI Explanation -->
+                    <div class="dashboard-grid">
+                        
+                        <!-- SQL Query Result Card -->
+                        <div class="card sql-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-code"></i> Query SQL yang Dihasilkan</h3>
+                                <button id="btn-copy-sql" class="btn-icon" title="Salin SQL">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                            </div>
+                            <div class="card-body code-body">
+                                <pre><code id="sql-code" class="language-sql">SELECT * FROM produk;</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- AI Response Card -->
+                        <div class="card explanation-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-wand-magic-sparkles neon-icon"></i> Analisis AI (Gemini)</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="ai-explanation" class="typing-text">
+                                    <!-- Typing animation by JS -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+
+                    <!-- Row 2: Executed Data Table -->
+                    <div class="card data-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-table"></i> Hasil Eksekusi Query</h3>
+                            <span class="badge" id="row-count">0 Baris</span>
+                        </div>
+                        <div class="card-body table-body scrollable">
+                            <div class="table-responsive">
+                                <table id="data-table" class="data-table-content">
+                                    <thead>
+                                        <!-- Dynamic columns -->
+                                    </thead>
+                                    <tbody>
+                                        <!-- Dynamic rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ERROR ALERT CARD -->
+                <div id="error-card" class="card error-card hidden">
+                    <div class="card-body">
+                        <div class="error-header">
+                            <i class="fa-solid fa-circle-exclamation error-icon"></i>
+                            <h3>Terjadi Kesalahan</h3>
+                        </div>
+                        <p id="error-message" class="error-msg-text">Gagal mengeksekusi query database.</p>
+                        
+                        <!-- Show generated SQL if error happened during DB execution -->
+                        <div id="error-sql-container" class="error-sql-wrapper hidden">
+                            <span class="label">SQL yang dicoba:</span>
+                            <pre><code id="error-sql-code"></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+    <!-- Load JavaScript logic -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

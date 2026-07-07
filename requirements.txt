@@ -1,0 +1,5 @@
+Flask==3.1.0
+Flask-Cors==6.0.5
+mysql-connector-python==9.1.0
+google-generativeai==0.8.3
+python-dotenv==1.0.1

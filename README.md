@@ -106,6 +106,10 @@ Setelah berjalan, buka browser Anda dan akses:
 
 ---
 
+## Dokumentasi
+<img width="1878" height="827" alt="Screenshot 2026-07-06 160108" src="https://github.com/user-attachments/assets/a1c882b7-5058-415f-b2f8-26d639d368b5" />
+
+
 ## 🤝 Kontribusi
 Kontribusi, saran, dan pelaporan bug sangat dipersilakan! Silakan buka *Issue* atau kirimkan *Pull Request* di repositori ini.
 
